@@ -1,0 +1,305 @@
+= Run Data Pipeline using Jet with Hazelcast Platform Operator
+:page-layout: tutorial
+:page-product: operator
+:page-categories: Cloud Native
+:page-lang: go, java, node, python
+:page-enterprise: true
+:page-est-time: 20 mins
+:description: Learn how to run a data pipeline in Hazelcast using Jet.
+
+{description}
+
+== Context
+In this tutorial, you'll do the following:
+
+- Build and deploy a custom Jet Pipeline implementation to cloud storage.
+
+- Deploy Hazelcast with Jet Engine configured.
+
+- Start the jet pipeline by creating a JetJob with Jet Pipeline Jar configurations.
+
+- Cancel the jet pipeline.
+
+== Before you Begin
+
+Before starting this tutorial, make sure that you meet the following prerequisites:
+
+* Up and running https://kubernetes.io/[Kubernetes] cluster
+* Kubernetes command-line tool, https://kubernetes.io/docs/tasks/tools/#kubectl[kubectl]
+* Maven command-line tool, https://maven.apache.org/download.cgi[mvn]
+* Deployed xref:operator:ROOT:index.adoc[Hazelcast Platform Operator]
+* Created blob storage and access credentials in one of the cloud providers: https://aws.amazon.com/s3/[AWS] - https://cloud.google.com/storage/[GCP] - https://azure.microsoft.com/en-us/services/storage/blobs/[Azure]
+
+== Step 1. Deploy Jet Pipeline JAR to external storage and create secret for accessing the external storage
+
+. Build Jet Pipeline JAR
+
++
+[source, shell]
+----
+cd jet-pipeline
+mvn package
+----
+
+. Upload the JAR to the cloud provider storage blob/bucket that you have already created:
+
++
+[tabs]
+====
+
+S3::
++
+--
+[source,bash]
+----
+aws s3 cp jet-pipeline/target/jet-pipeline-run-1.0.0.jar s3://<BUCKET_NAME>
+----
+--
+
+GCS::
++
+--
+[source,bash]
+----
+gsutil cp jet-pipeline/target/jet-pipeline-run-1.0.0.jar gs://<BUCKET_NAME>
+----
+--
+
+ABS::
++
+--
+[source,bash]
+----
+az storage blob upload --account-name <ACCOUNT_NAME> --container-name <CONTAINER_NAME> --file jet-pipeline/target/jet-pipeline-run-1.0.0.jar
+----
+--
+
+====
+
+. Create Secret for Bucket credentials
++
+Run one of the following command to create the secret according to the cloud provider you want to backup.
+
++
+[tabs]
+====
+
+S3::
++
+--
+[source,bash]
+----
+kubectl create secret generic <SECRET-NAME> --from-literal=region=<region> \
+	--from-literal=access-key-id=<access-key-id> \
+	--from-literal=secret-access-key=<secret-access-key>
+----
+--
+
+GCS::
++
+--
+[source,bash]
+----
+kubectl create secret generic <SECRET-NAME> --from-file=google-credentials-path=<service_account_json_file>
+----
+--
+
+Azure::
++
+--
+[source,bash]
+----
+kubectl create secret generic <SECRET-NAME> \
+	--from-literal=storage-account=<storage-account> \
+	--from-literal=storage-key=<storage-key>
+----
+--
+
+====
+
+== Step 2. Start the Hazelcast Cluster
+
+. Create a license secret
++
+Create a secret with your link:http://trialrequest.hazelcast.com/[Hazelcast Enterprise License].
++
+[source, shell]
+----
+kubectl create secret generic hazelcast-license-key --from-literal=license-key=<hz-license-key>
+----
+
+. Create the Hazelcast Cluster
++
+Run the following command to create the Hazelcast cluster with Jet Engine configured.
++
+[source, shell]
+----
+cat <<EOF | kubectl apply -f -
+apiVersion: hazelcast.com/v1alpha1
+kind: Hazelcast
+metadata:
+  name: my-hazelcast
+spec:
+  clusterSize: 3
+  licenseKeySecret: hazelcast-license-key
+  jet:
+    resourceUploadEnabled: true
+EOF
+----
++
+
+. Check the Cluster Status
++
+Run the following commands to see the cluster status
++
+[source, shell]
+----
+$ kubectl get hazelcast my-hazelcast
+NAME           STATUS    MEMBERS   EXTERNAL-ADDRESSES   WAN-ADDRESSES
+my-hazelcast   Running   3/3
+----
+
+== Step 3. Run the data pipeline
+
+. Create the JetJob with jar configuration
++
+Run the following command to start the JetJob.
++
+[source, shell]
+----
+cat <<EOF | kubectl apply -f -
+apiVersion: hazelcast.com/v1alpha1
+kind: JetJob
+metadata:
+  name: my-jet-job
+spec:
+  hazelcastResourceName: my-hazelcast
+  state: Running
+  jarName: jet-pipeline-run-1.0.0.jar
+  bucketConfig:
+    bucketURI: "<BUCKET-URI>"
+    secretName: <SECRET-NAME>
+EOF
+----
++
+
+.Sample bucket URIs:
+[NOTE]
+===============================
+   s3://hazelcast-jet-pipeline
+   gs://hazelcast-jet-pipeline
+   azblob://hazelcast-jet-pipeline
+===============================
+
+. Check the JetJob Status
++
+Run the following command to see the JetJob status
++
+[source,bash]
+----
+kubectl get jetjob my-jet-job -w
+----
++
+The status of the JetJob is displayed in the output. You should wait until you see the `Running` status.
++
+[source,bash]
+----
+NAME         STATUS    ID                   SUBMISSIONTIME         COMPLETIONTIME
+my-jet-job   Starting  0
+my-jet-job   Running   732187341048774657   2023-07-14T10:51:06Z
+----
+
+. Check Running Jet Pipeline output
++
+Run the following command to see the logs
++
+[source,bash]
+----
+kubectl logs -l app.kubernetes.io/name=hazelcast -c hazelcast | grep sequence
+----
++
+The logs of Jet Pipeline is displayed in the output.
++
+[source,bash]
+----
+{"time":"2023-07-14T10:51:06,679", "logger": "com.hazelcast.jet.impl.connector.WriteLoggerP", "level": "INFO", "msg": "[172.17.0.6]:5702 [dev] [5.3.1] [my-jet-job/loggerSink#0] SimpleEvent(timestamp=10:51:06.000, sequence=0) "}
+{"time":"2023-07-14T10:51:07,675", "logger": "com.hazelcast.jet.impl.connector.WriteLoggerP", "level": "INFO", "msg": "[172.17.0.6]:5702 [dev] [5.3.1] [my-jet-job/loggerSink#0] SimpleEvent(timestamp=10:51:07.000, sequence=1) "}
+{"time":"2023-07-14T10:51:08,681", "logger": "com.hazelcast.jet.impl.connector.WriteLoggerP", "level": "INFO", "msg": "[172.17.0.6]:5702 [dev] [5.3.1] [my-jet-job/loggerSink#0] SimpleEvent(timestamp=10:51:08.000, sequence=2) "}
+{"time":"2023-07-14T10:51:09,679", "logger": "com.hazelcast.jet.impl.connector.WriteLoggerP", "level": "INFO", "msg": "[172.17.0.6]:5702 [dev] [5.3.1] [my-jet-job/loggerSink#0] SimpleEvent(timestamp=10:51:09.000, sequence=3) "}
+{"time":"2023-07-14T10:51:10,682", "logger": "com.hazelcast.jet.impl.connector.WriteLoggerP", "level": "INFO", "msg": "[172.17.0.6]:5702 [dev] [5.3.1] [my-jet-job/loggerSink#0] SimpleEvent(timestamp=10:51:10.000, sequence=4) "}
+{"time":"2023-07-14T10:51:11,678", "logger": "com.hazelcast.jet.impl.connector.WriteLoggerP", "level": "INFO", "msg": "[172.17.0.6]:5702 [dev] [5.3.1] [my-jet-job/loggerSink#0] SimpleEvent(timestamp=10:51:11.000, sequence=5) "}
+{"time":"2023-07-14T10:51:12,677", "logger": "com.hazelcast.jet.impl.connector.WriteLoggerP", "level": "INFO", "msg": "[172.17.0.6]:5702 [dev] [5.3.1] [my-jet-job/loggerSink#0] SimpleEvent(timestamp=10:51:12.000, sequence=6) "}
+....
+....
+----
+
+. Cancel the Running JetJob
++
+Run the following command to cancel the JetJob
++
+[source,bash]
+----
+kubectl patch jetjob my-jet-job -p '{"spec":{"state":"Canceled"}}' --type=merge
+----
++
+
+. Check the JetJob Status
++
+Run the following command to see the JetJob status
++
+[source,bash]
+----
+kubectl get jetjob my-jet-job
+----
++
+The status of the JetJob is displayed in the output.
++
+[source,bash]
+----
+NAME         STATUS            ID                   SUBMISSIONTIME         COMPLETIONTIME
+my-jet-job   ExecutionFailed   732229926463209474   2023-07-14T13:40:19Z   2023-07-14T14:07:51Z
+----
++
+
+Run the following command to see detailed message for JetJob Status
++
+[source,bash]
+----
+kubectl get jetjob my-jet-job -o custom-columns=:.status.failureText
+----
++
+The failure text of the JetJob status is displayed in the output.
++
+[source,bash]
+----
+com.hazelcast.jet.impl.exception.CancellationByUserException
+      at com.hazelcast.jet.impl.MasterJobContext.createCancellationException(MasterJobContext.java:211)
+      at com.hazelcast.jet.impl.MasterJobContext.getErrorFromResponses(MasterJobContext.java:653)
+      at com.hazelcast.jet.impl.MasterJobContext.lambda$invokeStartExecution$12(MasterJobContext.java:576)
+      at com.hazelcast.jet.impl.MasterContext.lambda$invokeOnParticipant$3(MasterContext.java:376)
+      at com.hazelcast.jet.impl.util.ExceptionUtil.lambda$withTryCatch$0(ExceptionUtil.java:182)
+      at com.hazelcast.spi.impl.AbstractInvocationFuture$WhenCompleteNode.lambda$execute$0(AbstractInvocationFuture.java:1570)
+      at java.base/java.util.concurrent.ForkJoinTask$RunnableExecuteAction.exec(ForkJoinTask.java:1426)
+      at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:290)
+      at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1020)
+      at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1656)
+      at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1594)
+      at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:183)
+----
+
+== Clean Up
+
+To clean up the created resources remove the all Custom Resources and secrets.
+
+[source, shell]
+----
+kubectl delete secret <SECRET-NAME> hazelcast-license-key
+kubectl delete $(kubectl get hazelcast -o name)
+----
+
+NOTE: Deleting the Hazelcast CR will also delete the JetJobs which linked to itself.
+
+== See Also
+
+- xref:operator:ROOT:jet-engine-configuration.adoc[]
+- xref:operator:ROOT:jet-job-configuration.adoc[]
