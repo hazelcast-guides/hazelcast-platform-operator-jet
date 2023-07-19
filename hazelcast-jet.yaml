@@ -4,6 +4,5 @@ metadata:
   name: my-hazelcast
 spec:
   clusterSize: 3
-  licenseKeySecret: hazelcast-license-key
   jet:
     resourceUploadEnabled: true

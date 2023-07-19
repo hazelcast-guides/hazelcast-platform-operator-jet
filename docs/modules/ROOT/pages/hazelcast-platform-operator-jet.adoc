@@ -119,15 +119,6 @@ kubectl create secret generic <SECRET-NAME> \
 
 == Step 2. Start the Hazelcast Cluster
 
-. Create a license secret
-+
-Create a secret with your link:http://trialrequest.hazelcast.com/[Hazelcast Enterprise License].
-+
-[source, shell]
-----
-kubectl create secret generic hazelcast-license-key --from-literal=license-key=<hz-license-key>
-----
-
 . Create the Hazelcast Cluster
 +
 Run the following command to create the Hazelcast cluster with Jet Engine configured.
@@ -141,12 +132,13 @@ metadata:
   name: my-hazelcast
 spec:
   clusterSize: 3
-  licenseKeySecret: hazelcast-license-key
   jet:
     resourceUploadEnabled: true
 EOF
 ----
 +
+
+NOTE: You need to use Hazelcast 5.3 or further versions to able to submit JetJobs with the Hazelcast Platform Operator.
 
 . Check the Cluster Status
 +
@@ -293,7 +285,7 @@ To clean up the created resources remove the all Custom Resources and secrets.
 
 [source, shell]
 ----
-kubectl delete secret <SECRET-NAME> hazelcast-license-key
+kubectl delete secret <SECRET-NAME>
 kubectl delete $(kubectl get hazelcast -o name)
 ----
 
