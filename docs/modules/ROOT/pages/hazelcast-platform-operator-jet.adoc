@@ -227,7 +227,28 @@ The logs of Jet Pipeline is displayed in the output.
 
 . Cancel the Running JetJob
 +
-Run the following command to cancel the JetJob
+You can cancel the running JetJob by setting the `spec.state` to `Canceled`. You could use one of the following options.
++
+a) Run the following command to start the JetJob.
++
+[source, shell]
+----
+cat <<EOF | kubectl apply -f -
+apiVersion: hazelcast.com/v1alpha1
+kind: JetJob
+metadata:
+  name: my-jet-job
+spec:
+  hazelcastResourceName: my-hazelcast
+  state: Canceled
+  jarName: jet-pipeline-run-1.0.0.jar
+  bucketConfig:
+    bucketURI: "<BUCKET-URI>"
+    secretName: <SECRET-NAME>
+EOF
+----
++
+b) Run the following command to cancel the JetJob
 +
 [source,bash]
 ----
