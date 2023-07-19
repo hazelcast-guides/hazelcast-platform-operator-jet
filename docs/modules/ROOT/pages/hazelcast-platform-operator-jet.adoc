@@ -84,7 +84,7 @@ Run one of the following command to create the secret according to the cloud pro
 [tabs]
 ====
 
-S3::
+AWS::
 +
 --
 [source,bash]
@@ -95,7 +95,7 @@ kubectl create secret generic <SECRET-NAME> --from-literal=region=<region> \
 ----
 --
 
-GCS::
+GCP::
 +
 --
 [source,bash]
