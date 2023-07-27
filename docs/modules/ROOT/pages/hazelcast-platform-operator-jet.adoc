@@ -1,10 +1,11 @@
-= Run Data Pipeline using Jet with Hazelcast Platform Operator
+= Run a Data Pipeline Using Jet with Hazelcast Platform Operator
 :page-layout: tutorial
 :page-product: operator
 :page-categories: Cloud Native
 :page-lang: go, java, node, python
 :page-enterprise: true
 :page-est-time: 20 mins
+:github-directory: https://github.com/hazelcast-guides/hazelcast-platform-operator-jet
 :description: Learn how to run a data pipeline in Hazelcast using Jet.
 
 {description}
@@ -12,27 +13,62 @@
 == Context
 In this tutorial, you'll do the following:
 
-- Build and deploy a custom Jet Pipeline implementation to cloud storage.
+- Build and deploy a custom Jet pipeline implementation to cloud storage.
 
-- Deploy Hazelcast with Jet Engine configured.
+- Deploy Hazelcast with the Jet engine configured.
 
-- Start the jet pipeline by creating a JetJob with Jet Pipeline Jar configurations.
+- Start the Jet pipeline
 
-- Cancel the jet pipeline.
+- Check the Jet pipeline.
 
-== Before you Begin
+- Cancel the Jet pipeline.
 
-Before starting this tutorial, make sure that you meet the following prerequisites:
+== Before You Begin
 
-* Up and running https://kubernetes.io/[Kubernetes] cluster
+You need the following:
+
+* Running https://kubernetes.io/[Kubernetes] cluster
 * Kubernetes command-line tool, https://kubernetes.io/docs/tasks/tools/#kubectl[kubectl]
 * Maven command-line tool, https://maven.apache.org/download.cgi[mvn]
 * Deployed xref:operator:ROOT:index.adoc[Hazelcast Platform Operator]
-* Created blob storage and access credentials in one of the cloud providers: https://aws.amazon.com/s3/[AWS] - https://cloud.google.com/storage/[GCP] - https://azure.microsoft.com/en-us/services/storage/blobs/[Azure]
+* Blob storage and access credentials on one of the following cloud providers: https://aws.amazon.com/s3/[AWS], https://cloud.google.com/storage/[GCP], https://azure.microsoft.com/en-us/services/storage/blobs/[Azure]
 
-== Step 1. Deploy Jet Pipeline JAR to external storage and create secret for accessing the external storage
+== Step 1. Deploy the Jet Pipeline JAR to Cloud Storage
 
-. Build Jet Pipeline JAR
+In this step, you’ll build the Jet pipeline JAR from the tutorial’s GitHub repository, and upload it to your cloud provider.
+
+. Clone the Sample Project
+
++
+All the code for this project is available on GitHub. In this step, you'll clone the project and learn how it works.
+
++
+[tabs]
+====
+HTTPS::
++
+--
+```bash
+git clone https://github.com/hazelcast-guides/hazelcast-platform-operator-jet.git
+
+cd hazelcast-platform-operator-jet
+```
+--
+SSH::
++
+--
+```bash
+git clone git@github.com:hazelcast-guides/hazelcast-platform-operator-jet.git
+
+cd hazelcast-platform-operator-jet
+```
+--
+====
+
++
+The sample code for this tutorial is in the link:{github-directory}/tree/master/jet-pipeline/src/main/java/org/example/run[`jet-pipeline/src/main/java/org/example/run/`] directory:
+
+. Build the Jet pipeline JAR
 
 +
 [source, shell]
@@ -41,7 +77,7 @@ cd jet-pipeline
 mvn package
 ----
 
-. Upload the JAR to the cloud provider storage blob/bucket that you have already created:
+. Upload the Jet pipeline JAR to the storage blob/bucket of your cloud provider, replacing the placeholder values:
 
 +
 [tabs]
@@ -76,9 +112,7 @@ az storage blob upload --account-name <ACCOUNT_NAME> --container-name <CONTAINER
 
 ====
 
-. Create Secret for Bucket credentials
-+
-Run one of the following command to create the secret according to the cloud provider you want to backup.
+. Create a secret for your cloud storage by running one of the following commands. Remember to replace the placeholder values.
 
 +
 [tabs]
@@ -119,9 +153,8 @@ kubectl create secret generic <SECRET-NAME> \
 
 == Step 2. Start the Hazelcast Cluster
 
-. Create the Hazelcast Cluster
-+
-Run the following command to create the Hazelcast cluster with Jet Engine configured.
+. Run this command to create a Hazelcast cluster with the Jet engine configured.
+
 +
 [source, shell]
 ----
@@ -140,9 +173,8 @@ EOF
 
 NOTE: You need to use Hazelcast 5.3 or further versions to able to submit JetJobs with the Hazelcast Platform Operator.
 
-. Check the Cluster Status
-+
-Run the following commands to see the cluster status
+. Now check the cluster status to make sure that it is up and running.
+
 +
 [source, shell]
 ----
@@ -151,11 +183,19 @@ NAME           STATUS    MEMBERS   EXTERNAL-ADDRESSES   WAN-ADDRESSES
 my-hazelcast   Running   3/3
 ----
 
-== Step 3. Run the data pipeline
+== Step 3. Run the Data Pipeline
 
-. Create the JetJob with jar configuration
+In this step, you’ll start, check and cancel the Jet job that runs the data pipeline.
+
+. Run the following command to start the Jet job you have already deployed.
+
 +
-Run the following command to start the JetJob.
+Replace the <BUCKET-URI> with the appropriate sample bucket URI for your cloud provider:
++
+- s3://hazelcast-jet-pipeline
+- gs://hazelcast-jet-pipeline
+- azblob://hazelcast-jet-pipeline
+
 +
 [source, shell]
 ----
@@ -173,26 +213,16 @@ spec:
     secretName: <SECRET-NAME>
 EOF
 ----
-+
 
-.Sample bucket URIs:
-[NOTE]
-===============================
-   s3://hazelcast-jet-pipeline
-   gs://hazelcast-jet-pipeline
-   azblob://hazelcast-jet-pipeline
-===============================
+. Check status of the Jet job.
 
-. Check the JetJob Status
-+
-Run the following command to see the JetJob status
 +
 [source,bash]
 ----
 kubectl get jetjob my-jet-job -w
 ----
 +
-The status of the JetJob is displayed in the output. You should wait until you see the `Running` status.
+The output will look something like this. Wait until the `Running` status is displayed.
 +
 [source,bash]
 ----
@@ -201,9 +231,8 @@ my-jet-job   Starting  0
 my-jet-job   Running   732187341048774657   2023-07-14T10:51:06Z
 ----
 
-. Check Running Jet Pipeline output
-+
-Run the following command to see the logs
+. To see the output of the Jet pipeline in the logs, run the following command.
+
 +
 [source,bash]
 ----
@@ -225,11 +254,10 @@ The logs of Jet Pipeline is displayed in the output.
 ....
 ----
 
-. Cancel the Running JetJob
+. Now, cancel the Jet job by setting the `spec.state` to `Canceled`. Use one of the following options.
+
 +
-You can cancel the running JetJob by setting the `spec.state` to `Canceled`. You could use one of the following options.
-+
-a) Run the following command to start the JetJob.
+a) Run the following command to cancel the JetJob.
 +
 [source, shell]
 ----
@@ -256,16 +284,15 @@ kubectl patch jetjob my-jet-job -p '{"spec":{"state":"Canceled"}}' --type=merge
 ----
 +
 
-. Check the JetJob Status
-+
-Run the following command to see the JetJob status
+. Now check the Jet job status to make sure the job has cancelled.
+
 +
 [source,bash]
 ----
 kubectl get jetjob my-jet-job
 ----
 +
-The status of the JetJob is displayed in the output.
+The output shows the status is now `ExecutionFailed`.
 +
 [source,bash]
 ----
@@ -274,14 +301,14 @@ my-jet-job   ExecutionFailed   732229926463209474   2023-07-14T13:40:19Z   2023-
 ----
 +
 
-Run the following command to see detailed message for JetJob Status
+. Run the following command to see a more detailed message for the status of the Jet job.
 +
 [source,bash]
 ----
 kubectl get jetjob my-jet-job -o custom-columns=:.status.failureText
 ----
 +
-The failure text of the JetJob status is displayed in the output.
+The failure text is displayed in the output.
 +
 [source,bash]
 ----
@@ -290,19 +317,13 @@ com.hazelcast.jet.impl.exception.CancellationByUserException
       at com.hazelcast.jet.impl.MasterJobContext.getErrorFromResponses(MasterJobContext.java:653)
       at com.hazelcast.jet.impl.MasterJobContext.lambda$invokeStartExecution$12(MasterJobContext.java:576)
       at com.hazelcast.jet.impl.MasterContext.lambda$invokeOnParticipant$3(MasterContext.java:376)
-      at com.hazelcast.jet.impl.util.ExceptionUtil.lambda$withTryCatch$0(ExceptionUtil.java:182)
-      at com.hazelcast.spi.impl.AbstractInvocationFuture$WhenCompleteNode.lambda$execute$0(AbstractInvocationFuture.java:1570)
-      at java.base/java.util.concurrent.ForkJoinTask$RunnableExecuteAction.exec(ForkJoinTask.java:1426)
-      at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:290)
-      at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1020)
-      at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1656)
-      at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1594)
-      at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:183)
+      ....
+      ....
 ----
 
-== Clean Up
+== Step 4. Clean Up
 
-To clean up the created resources remove the all Custom Resources and secrets.
+To clean up all the resources you created during the tutorial, and to remove the custom resources and secrets, run the following command:
 
 [source, shell]
 ----
@@ -310,7 +331,7 @@ kubectl delete secret <SECRET-NAME>
 kubectl delete $(kubectl get hazelcast -o name)
 ----
 
-NOTE: Deleting the Hazelcast CR will also delete the JetJobs which linked to itself.
+NOTE: Deleting the Hazelcast CR will also delete the Jet jobs linked to it.
 
 == See Also
 
