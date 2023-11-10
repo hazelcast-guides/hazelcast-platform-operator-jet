@@ -70,8 +70,7 @@ The sample code for this tutorial is in the link:{github-directory}/tree/master/
 +
 [source, shell]
 ----
-cd jet-pipeline
-mvn package
+mvn package -f ./jet-pipeline
 ----
 
 . Upload the Jet pipeline JAR to the storage blob/bucket of your cloud provider, replacing the placeholder values.
