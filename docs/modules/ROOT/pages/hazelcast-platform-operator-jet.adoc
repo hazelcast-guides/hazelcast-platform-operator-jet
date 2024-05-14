@@ -30,7 +30,7 @@ You need the following:
 * Running https://kubernetes.io/[Kubernetes] cluster
 * Kubernetes command-line tool, https://kubernetes.io/docs/tasks/tools/#kubectl[kubectl]
 * Maven command-line tool, https://maven.apache.org/download.cgi[mvn]
-* Deployed xref:operator:ROOT:index.adoc[Hazelcast Platform Operator version 5.8 or above]
+* Deployed xref:operator:ROOT:get-started.adoc[Hazelcast Platform Operator version 5.8 or above]
 * Blob storage and access credentials on one of the following cloud providers: https://aws.amazon.com/s3/[AWS], https://cloud.google.com/storage/[GCP], https://azure.microsoft.com/en-us/services/storage/blobs/[Azure]
 
 == Step 1. Deploy the Jet Pipeline JAR to Cloud Storage
@@ -154,15 +154,8 @@ kubectl create secret generic <SECRET-NAME> \
 +
 [source, shell]
 ----
-cat <<EOF | kubectl apply -f -
-apiVersion: hazelcast.com/v1alpha1
-kind: Hazelcast
-metadata:
-  name: my-hazelcast
-spec:
-  clusterSize: 3
-  jet:
-    resourceUploadEnabled: true
+kubectl apply -f - <<EOF
+include::ROOT:example$/hazelcast-jet.yaml[]
 EOF
 ----
 +
@@ -195,18 +188,8 @@ Replace the <BUCKET-URI> with the appropriate sample bucket URI for your cloud p
 +
 [source, shell]
 ----
-cat <<EOF | kubectl apply -f -
-apiVersion: hazelcast.com/v1alpha1
-kind: JetJob
-metadata:
-  name: my-jet-job
-spec:
-  hazelcastResourceName: my-hazelcast
-  state: Running
-  jarName: jet-pipeline-run-1.0.0.jar
-  bucketConfig:
-    bucketURI: "<BUCKET-URI>"
-    secretName: <SECRET-NAME>
+kubectl apply -f - <<EOF
+include::ROOT:example$/jet-running.yaml[]
 EOF
 ----
 
@@ -257,18 +240,8 @@ a) Run the following command to cancel the JetJob, using `kubectl apply` command
 +
 [source, shell]
 ----
-cat <<EOF | kubectl apply -f -
-apiVersion: hazelcast.com/v1alpha1
-kind: JetJob
-metadata:
-  name: my-jet-job
-spec:
-  hazelcastResourceName: my-hazelcast
-  state: Canceled
-  jarName: jet-pipeline-run-1.0.0.jar
-  bucketConfig:
-    bucketURI: "<BUCKET-URI>"
-    secretName: <SECRET-NAME>
+kubectl apply -f - <<EOF
+include::ROOT:example$/jet-canceled.yaml[]
 EOF
 ----
 +
