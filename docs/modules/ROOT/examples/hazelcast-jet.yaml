@@ -3,6 +3,7 @@ kind: Hazelcast
 metadata:
   name: my-hazelcast
 spec:
+  licenseKeySecretName: hazelcast-license-key
   clusterSize: 3
   jet:
     resourceUploadEnabled: true

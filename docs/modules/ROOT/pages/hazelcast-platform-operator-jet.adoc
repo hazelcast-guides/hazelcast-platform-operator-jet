@@ -3,7 +3,6 @@
 :page-product: operator
 :page-categories: Cloud Native
 :page-lang: go, java, node, python
-:page-enterprise: true
 :page-est-time: 20 mins
 :github-directory: https://github.com/hazelcast-guides/hazelcast-platform-operator-jet
 :description: Learn how to run a data pipeline in Hazelcast using Jet.
@@ -36,6 +35,13 @@ You need the following:
 == Step 1. Deploy the Jet Pipeline JAR to Cloud Storage
 
 In this step, you’ll build the Jet pipeline JAR from the tutorial’s GitHub repository, and upload it to your cloud provider.
+
+. Create a secret with your link:http://trialrequest.hazelcast.com/[Hazelcast Enterprise License].
++
+[source, shell]
+----
+kubectl create secret generic hazelcast-license-key --from-literal=license-key=<hz-license-key>
+----
 
 . Clone the sample project.
 
