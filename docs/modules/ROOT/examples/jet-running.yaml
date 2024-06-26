@@ -3,7 +3,6 @@ kind: JetJob
 metadata:
   name: my-jet-job
 spec:
-  licenseKeySecretName: hazelcast-license-key
   hazelcastResourceName: my-hazelcast
   state: Running
   jarName: jet-pipeline-run-1.0.0.jar
