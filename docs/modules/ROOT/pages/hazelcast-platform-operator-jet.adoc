@@ -36,13 +36,6 @@ You need the following:
 
 In this step, you’ll build the Jet pipeline JAR from the tutorial’s GitHub repository, and upload it to your cloud provider.
 
-. Create a secret with your link:http://trialrequest.hazelcast.com/[Hazelcast Enterprise License].
-+
-[source, shell]
-----
-kubectl create secret generic hazelcast-license-key --from-literal=license-key=<hz-license-key>
-----
-
 . Clone the sample project.
 
 +
@@ -154,6 +147,17 @@ kubectl create secret generic <SECRET-NAME> \
 ====
 
 == Step 2. Start the Hazelcast Cluster
+
+. Create a secret with your link:http://trialrequest.hazelcast.com/[Hazelcast Enterprise License].
+
++
+[source, shell]
+----
+kubectl create secret generic hazelcast-license-key --from-literal=license-key=<hz-license-key>
+----
++
+
+NOTE: Starting with version 5.13, Hazelcast Platform Operator only supports Hazelcast Enterprise cluster creation. Even the feature can be used in Hazelcast Open Source clusters, Hazelcast Platform Operator requires license key to run a cluster.
 
 . Run this command to create a Hazelcast cluster with the Jet engine configured.
 
