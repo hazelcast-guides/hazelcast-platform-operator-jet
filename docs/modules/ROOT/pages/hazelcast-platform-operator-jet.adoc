@@ -3,7 +3,6 @@
 :page-product: operator
 :page-categories: Cloud Native
 :page-lang: go, java, node, python
-:page-enterprise: true
 :page-est-time: 20 mins
 :github-directory: https://github.com/hazelcast-guides/hazelcast-platform-operator-jet
 :description: Learn how to run a data pipeline in Hazelcast using Jet.
@@ -148,6 +147,17 @@ kubectl create secret generic <SECRET-NAME> \
 ====
 
 == Step 2. Start the Hazelcast Cluster
+
+. Create a secret with your link:http://trialrequest.hazelcast.com/[Hazelcast Enterprise License].
+
++
+[source, shell]
+----
+kubectl create secret generic hazelcast-license-key --from-literal=license-key=<hz-license-key>
+----
++
+
+NOTE: Starting with version 5.13, Hazelcast Platform Operator only supports Hazelcast Enterprise cluster creation. Even the feature can be used in Hazelcast Open Source clusters, Hazelcast Platform Operator requires license key to run a cluster.
 
 . Run this command to create a Hazelcast cluster with the Jet engine configured.
 
