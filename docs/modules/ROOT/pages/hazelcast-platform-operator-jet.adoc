@@ -146,6 +146,8 @@ kubectl create secret generic <SECRET-NAME> \
 
 ====
 
+NOTE: If you want to learn more about other authentication methods, check the xref:operator:ROOT:authorization.adoc[Authorization Methods to Access Cloud Storage] documentation.
+
 == Step 2. Start the Hazelcast Cluster
 
 . Create a secret with your link:http://trialrequest.hazelcast.com/[Hazelcast Enterprise License].
